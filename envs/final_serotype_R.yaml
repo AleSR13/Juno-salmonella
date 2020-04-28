@@ -1,0 +1,13 @@
+name: final_serotype_R.yaml
+channels:
+  - r
+dependencies:
+  - r
+  - r-base64enc
+  - r-dplyr
+  - r-ggplot2
+  - r-readr
+  - r-tibble
+  - r-tidyr
+
+

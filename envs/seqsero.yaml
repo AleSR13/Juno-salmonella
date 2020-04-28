@@ -1,0 +1,19 @@
+name: s_serotyper
+channels:
+  - bioconda
+  - defaults
+dependencies:
+  - bedtools
+  - biopython
+  - blas
+  - blast
+  - bwa
+  - ncbi-ngs-sdk
+  - pip
+  - python
+  - salmid
+  - samtools
+  - spades
+  - sra-tools
+  - seqsero2
+
