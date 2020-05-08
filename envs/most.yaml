@@ -8,7 +8,7 @@ channels:
   - defaults
 dependencies:
   - biopython
-  - blast-plus=2.2.31=0
+  - blast-plus=2.2.31
   - bowtie2=2.3.5.1
   - emboss=6.6.0
   - lxml

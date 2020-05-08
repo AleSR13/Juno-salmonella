@@ -9,5 +9,6 @@ dependencies:
   - r-readr
   - r-tibble
   - r-tidyr
-
-
+  - r-xml2
+  - r-stringr
+  - r-purrr

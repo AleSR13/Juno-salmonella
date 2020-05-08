@@ -5,25 +5,91 @@ library(readr)
 library(tidyr)
 library(dplyr)
 library(stringr)
+library(xml2)
+library(purrr)
 
 ## Load samples
-args = commandArgs()
-print(args)
+arguments <- commandArgs(trailingOnly = TRUE)
+#arguments <- paste("/data/BioGrid/Hernandez/test1_salmonellaserotyper/Output/1091702474_serotype/", c("SeqSero_result.tsv", "1091702474_R1.fastq_MLST_result.csv"), sep = "")
+
+###########################################################################################
+######################################## Functions ########################################
+###########################################################################################
+
+#Function to extract info from SeqSero2 results
+extract_from_seqsero <- function(path_to_file){
+  stopifnot(typeof(path_to_file)=="character")
+  res_seqsero <- read_tsv(path_to_file, col_names = c("col1", "col2"))
+  subspecies <- grep("subspecies", as_vector(res_seqsero[,1])) %>% res_seqsero[.,2] %>% as_vector
+  antigen <- grep("antigenic profile", as_vector(res_seqsero[,1])) %>% res_seqsero[.,2] %>% as_vector
+  prediction_seqsero <- grep("serotype", as_vector(res_seqsero[,1])) %>% res_seqsero[.,2] %>% as_vector
+  extra_info <- grep("note", as_vector(res_seqsero[,1])) %>% res_seqsero[.,2] %>% as_vector
+  if(length(extra_info)==0){
+    extra_info <- NA
+  }
+  results_seqsero <- c(subspecies, antigen, prediction_seqsero, extra_info)
+  results_seqsero
+}
+
+#Function to extract info from SeqSero2 results
+extract_from_xml_most <- function(path_to_file){
+  stopifnot(typeof(path_to_file)=="character")
+  res_most <- read_xml(path_to_file) %>% xml_find_all("//results") %>% 
+    xml_children %>% as_list
+  ST <- attributes(res_most[[1]])$value
+  prediction_most <- map(res_most[[1]], attributes) %>% unlist %>%
+    .[grep("predicted_serotype", .)+1] %>%
+    str_extract("[:alnum:]+ \\([:alnum:]+\\)")
+  summary[5:6,4] <- c(ST, prediction_most)
+}
+
+#Function to create summary of results
+create_summary <- function(argument1){
+  stopifnot(typeof(argument1)=="character")
+  stopifnot(length(argument1)==1)
+  #Get sample name
+  sample_name <- argument1 %>% str_extract("[:alnum:]+(_[:alnum:]+)*_serotype") %>% str_remove("_serotype")
+  #Extract info SeqSero2
+  res_seqsero <- extract_from_seqsero(argument1)
+  #Create summary of the results
+  summary <- tibble("Sample"=rep(sample_name,6),
+                    "Algorithm" = rep(c("SeqSero2", "SeqSero2", "7 locus-MLST (MOST)"), each = 2),
+                    "Type" = c("Subspecies", "Antigenic profile", "Serotype", "Extra info", "ST_mlst", "Serotype_mlst"),
+                    "Prediction" = c(res_seqsero, "Not calculated", "Not calculated"))
+  summary
+}
+
+#Modify summary if MOST was run
+add_most_results <- function(argument2){
+  #Check if it was run or not
+  res_most_csv <- read_csv(argument2)
+  if(nrow(res_most_csv)>1){
+    #If MOST was run, add the results to the summary table
+    xml_most_res <- str_replace(argument2, "_MLST_result.csv", ".results.xml")
+    res_most <- read_xml(xml_most_res) %>% xml_find_all("//results") %>% xml_children %>% as_list
+    ST <- attributes(res_most[[1]])$value
+    prediction_most <- map(res_most[[1]], attributes) %>% unlist %>%
+      .[grep("predicted_serotype", .)+1] %>%
+      str_extract("[:alnum:]+ \\([:alnum:]+\\)")
+    summary[5:6,4] <- c(ST, prediction_most)
+  }
+  summary
+}
+
+###########################################################################################
+######################################## Analysis  ########################################
+###########################################################################################
+
 # test if there is at least one argument: if not, return an error
-if (length(args)!=7) {
-  stop("Two arguments (two input files) containing results from SeqSero and MOST should be supplied.n", call.=FALSE)
+if (length(arguments)!=2) {
+  stop("Not enough arguments. The name of the files containing results from SeqSero (tsv) and MOST (csv) should be supplied", call.=FALSE)
 } else {
-  output_dir <- args[6] %>% gsub("/SeqSero_result.txt", x = ., replacement = "")
-  res_seqsero <- read_delim(args[6], "\t", col_names = FALSE)
-  res_most <- read_csv(args[7], col_names = FALSE)
-  res_most <- res_most[1:2,2] %>% str_split(pattern = '\\),')
-  res_most <- res_most[[1]][1] %>% str_split(pattern = ',')
-  ST_most <- gsub("c\\(", x = res_most[[1]][1], replacement = "") %>% 
-    gsub('\\"', x = ., replacement = "")
-  prediction_most <- gsub(' \\"\\(', x = res_most[[1]][2], replacement = "") %>% 
-    gsub("'", x = ., replacement = "")
-  summary <- tibble("Algorithm" = rep(c("SeqSero2", "7 locus-MLST (MOST)"), each = 2),
-                    "Type" = c("Antigenic profile", "Serotype", "ST", "Serotype"),
-                    "Prediction" = unlist(c(res_seqsero[7:8,2], ST_most, prediction_most)))
+  #Get name of output directory
+  output_dir <- str_remove(arguments[1], "SeqSero_result.tsv")
+  #Make summary using SeqSero2 results
+  summary <- create_summary(arguments[1])
+  #Get results from MLST serotyping if applicable
+  summary <- add_most_results(arguments[2])
+  #Save results
   write_csv(summary, paste(output_dir, "final_serotype.csv", sep = "/"))
 }

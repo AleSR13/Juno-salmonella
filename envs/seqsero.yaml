@@ -15,5 +15,5 @@ dependencies:
   - samtools
   - spades
   - sra-tools
-  - seqsero2
+  - seqsero2=1.1.1
 
