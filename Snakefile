@@ -1,81 +1,131 @@
-## Pipeline to get SeqSero2 and MOST running
-## For now both are run in every sample, but eventually MOST will be run only if SeqSero2 cannot find a serotype
-## For now the pipeline needs to be run through my s_serotyper environment (see explanation above seqsero2 rule)
+## Pipeline to get serotype of Salmonella samples from fastq files
+## The pipline uses SeqSero2 as main tool but when it fails to get a serotype, 
+## it inferes it from the 7-gene MLST
+# Snakemake rules (in order of execution):
+#   1 SeqSero2 
+#   2 MOST (only run if SeqSero2 fails to predict serotype)
+## For now MOST is in my Scripts folder. Eventually I want to have it as an installable software
+#   3 final_serotype: creates summary table per sample with results from seqsero2 and most
+#   4 summary_all_samples: generates one summary file and one report file with the results of all samples run
+## The summary_all_samples file has more detail (antigenic profile, full result from seqsero2 and from most, subspecies, etc)
+## The report file only contains a table of samples and their final predicted serotype
 
-#For now the sample list is loaded here
-#sample_list.txt created using script get_sample_list.sh
 
-sample_doc = open("Samples/sample_list.txt", "r")
-sample_list = sample_doc.readlines()
-sample_list = sample_list[0].split('\n')[:-1]
-SAMPLES = sample_list[0].split(' ')
+import pathlib
+import pprint
+import yaml
 
-#Not using configfile yet or anything fancy
-#configfile: './config_snake/config.yaml'
+#Configuration options for snakemake
+configfile: "config/config.yaml"
+configfile: 'config/parameters.yaml'
+
+# Load sample list (YAML file with form: sample > read number > file)
+SAMPLES = {}
+with open(config["sample_sheet"]) as sample_sheet_file:
+    SAMPLES = yaml.load(sample_sheet_file) 
 
 #Final output is a csv file summarizing results for SeqSero2 and MOST
 rule all:
     input:
-        expand('Output/{sample}_serotype/final_serotype.csv', sample=SAMPLES),
-        'Output/serotype_all_samples.csv'
+        expand('output/{sample}_serotype/SeqSero_result.tsv', sample=SAMPLES),
+        expand('output/{sample}_serotype/{sample}.fastq_MLST_result.csv', sample=SAMPLES),
+        expand('output/{sample}_serotype/final_serotype.csv', sample=SAMPLES),
+        'output/serotype_report.csv',
+        'output/serotype_all_samples.csv'
 
 
 #This rule gets the serotype prediction using seqsero2
-rule seqsero2_prediction:
+rule SeqSero2_Serotype:
     input:
-        r1 = 'Samples/{sample}_R1.fastq.gz',
-        r2 = 'Samples/{sample}_R2.fastq.gz',
+        r1 = 'samples/{sample}_R1_001.fastq.gz',
+        r2 = 'samples/{sample}_R2_001.fastq.gz'
     output:
-        'Output/{sample}_serotype/SeqSero_result.tsv'
+        'output/{sample}_serotype/SeqSero_result.tsv'
     log:
-        'logs/{sample}_seqsero.log'
-    threads: 10 
+        'output/log/{sample}_seqsero.log'
+    params:
+        output_dir = 'output/{sample}_serotype/'
+    threads: 
+        config["threads"]["SeqSero2_Serotype"]
     conda:
         'envs/seqsero.yaml'
     shell:
-        'bash Scripts/seqsero2_wrapper.sh {input} > {output}'
+        """
+#Run seqsero2 
+# -m 'a' means microassembly mode and -t '2' refers to separated fastq files (no interleaved)
+SeqSero2_package.py -m 'a' -t '2' -i {input} -d {params.output_dir} -p {threads}
+        """
 
 
 #Serotype prediction done with MOST (7 locus-MLST). Only run if SeqSero2 does not give a serotype
-rule most_prediction:
+rule MOST_Serotype:
     input:
-        'Samples/{sample}_R1.fastq.gz',
-        'Samples/{sample}_R2.fastq.gz'
+        r1 = 'samples/{sample}_R1_001.fastq.gz',
+        r2 = 'samples/{sample}_R2_001.fastq.gz',
+        seqsero_res = 'output/{sample}_serotype/SeqSero_result.tsv'
     output:
-        'Output/{sample}_serotype/{sample}_R1.fastq_MLST_result.csv'
+        'output/{sample}_serotype/{sample}.fastq_MLST_result.csv'
     log:
-        'logs/{sample}_most.log'
+        'output/log/{sample}_most.log'
+    params:
+        output_dir='output/{sample}_serotype/',
+        mlst_db=config["MOST"]["mlst_db"]
     threads: 10 
     conda:
         'envs/most.yaml'
     shell:
-        'bash Scripts/most_wrapper.sh {input} > {output}'
+        """
+#Read results from SeqSero2 
+
+while IFS=$'\t' read -r -a myArray
+do
+ serotype=`echo "${{myArray[8]}}"`
+done < {input.seqsero_res}
+
+#serotype=`grep 'serotype:' {input.seqsero_res}`
+#serotype=`echo ${{serotype#*:}}`
+
+#Run MOST only if antigenic profile predicted by SeqSero2 is an antigenic profile (antigen:antigen:antigen) instead of a name (serotype not in seqsero2 db)
+if [[ $serotype == *:*:* ]]; then
+    scripts/MOST/MOST.py -1 {input.r1} \
+    -2 {input.r2} \
+    -st {params.mlst_db} \
+    -o {params.output_dir} \
+    -serotype True
+else
+    echo "SeqSero2 predicted serotype. No need to run MOST" > {output}
+fi
+        """
+
 
 
 #Rscript to summarize results from both platforms.
-rule final_serotype:
+rule Final_Serotype_per_sample:
     input:
-        'Output/{sample}_serotype/SeqSero_result.tsv',
-        'Output/{sample}_serotype/{sample}_R1.fastq_MLST_result.csv'
+        'output/{sample}_serotype/SeqSero_result.tsv',
+        'output/{sample}_serotype/{sample}.fastq_MLST_result.csv'
     output:
-        'Output/{sample}_serotype/final_serotype.csv'
+        'output/{sample}_serotype/final_serotype.csv'
     log:
-        'logs/{sample}_Rserotype_per_sample.log'
+        'output/log/{sample}_Rserotype_per_sample.log'
     conda:
         'envs/final_serotype_R.yaml'
     shell:
-        'Rscript Scripts/final_serotype.R {input} > {output}'
+        'Rscript scripts/final_serotype.R {input} > {output} 2> {log}'
+
+
 
 #Rscript to summarize results for all samples
-rule results_all_samples:
+rule Serotype_All_Samples:
     input:
-        expand('Output/{sample}_serotype/final_serotype.csv', sample=SAMPLES)
+        expand('output/{sample}_serotype/final_serotype.csv', sample=SAMPLES)
     output:
-        'Output/serotype_all_samples.csv'
+        'output/serotype_all_samples.csv',
+        'output/serotype_report.csv'
     log:
-        'logs/Rserotype_all_samples.log'
+        'output/log/Rserotype_all_samples.log'
     conda:
         'envs/final_serotype_R.yaml'
     shell:
-        'Rscript Scripts/summary_all_samples.R {input} > {output}'
+        'Rscript scripts/summary_all_samples.R {input} 2> {log}'
 
