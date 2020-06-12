@@ -1,0 +1,21 @@
+### Parameters for software used     
+
+MOST:
+    #Directory with MLST data for Salmonella
+    mlst_db: "scripts/MOST/MLST_data/salmonella/"
+
+SRST2:
+    mlst_db: "salm_srst2_db/Salmonella_enterica.fasta"
+    mlst_definitions: "salm_srst2_db/senterica.txt"
+
+
+### Technical parameters           
+
+
+threads:
+    SeqSero2_Serotype: 10
+    MOST_Serotype: 10
+    Final_Serotype_per_sample: 2
+    Serotype_All_Samples: 4
+    cgMLST_SRST2: 24
+

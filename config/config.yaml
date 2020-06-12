@@ -1,0 +1,9 @@
+use-conda: true
+jobs: "99"
+latency-wait: "200"
+printshellcmds: true
+keep-going: true
+config:
+  - "sample_sheet='config/sample_sheet.yaml'"
+drmaa: " -q bio -n {threads}"
+drmaa-log-dir: output/log/drmaa

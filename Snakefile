@@ -37,8 +37,8 @@ rule all:
 #This rule gets the serotype prediction using seqsero2
 rule SeqSero2_Serotype:
     input:
-        r1 = 'samples/{sample}_R1_001.fastq.gz',
-        r2 = 'samples/{sample}_R2_001.fastq.gz'
+        r1 = lambda wildcards: SAMPLES[wildcards.sample]['R1'],
+        r2 = lambda wildcards: SAMPLES[wildcards.sample]['R2']
     output:
         'output/{sample}_serotype/SeqSero_result.tsv'
     log:
@@ -60,8 +60,8 @@ SeqSero2_package.py -m 'a' -t '2' -i {input} -d {params.output_dir} -p {threads}
 #Serotype prediction done with MOST (7 locus-MLST). Only run if SeqSero2 does not give a serotype
 rule MOST_Serotype:
     input:
-        r1 = 'samples/{sample}_R1_001.fastq.gz',
-        r2 = 'samples/{sample}_R2_001.fastq.gz',
+        r1 = lambda wildcards: SAMPLES[wildcards.sample]['R1'],
+        r2 = lambda wildcards: SAMPLES[wildcards.sample]['R2'],
         seqsero_res = 'output/{sample}_serotype/SeqSero_result.tsv'
     output:
         'output/{sample}_serotype/{sample}.fastq_MLST_result.csv'
@@ -79,19 +79,18 @@ rule MOST_Serotype:
 
 while IFS=$'\t' read -r -a myArray
 do
- serotype=`echo "${{myArray[8]}}"`
+    serotype=`echo "${{myArray[8]}}"`
 done < {input.seqsero_res}
 
-#serotype=`grep 'serotype:' {input.seqsero_res}`
-#serotype=`echo ${{serotype#*:}}`
-
-#Run MOST only if antigenic profile predicted by SeqSero2 is an antigenic profile (antigen:antigen:antigen) instead of a name (serotype not in seqsero2 db)
+#Run MOST only if SeqSero2 could not predict serotype (serotype has the form: antigen:antigen:antigen)
 if [[ $serotype == *:*:* ]]; then
     scripts/MOST/MOST.py -1 {input.r1} \
     -2 {input.r2} \
     -st {params.mlst_db} \
     -o {params.output_dir} \
     -serotype True
+    result=(`ls {params.output_dir} | grep 'MLST_result.csv'`)
+    mv "{params.output_dir}/${{result}}" {output}
 else
     echo "SeqSero2 predicted serotype. No need to run MOST" > {output}
 fi
