@@ -1,3 +1,28 @@
-# Test1_SalmonellaSerotyper
+# Salmonella Serotyper pipeline
 
-I will start testing here how to use the Salmonella Serotyper. Namely, using SeqSero2 + 7-gene MLST 
+This small pipeline predicts the serotype of Salmonella samples from fastq files. It uses the tool SeqSero2 to do so (see: https://github.com/denglab/SeqSero2). It contains only two rules:
+1. Serotype prediction using SeqSero2 taking fastq files as input
+2. Creates a salmonella\_multi_report.csv that collects all the results from all the samples run
+
+_Note:_ SeqSero2 is run in microassembly mode and, in this pipeline, it can only accept two separate fastq files (one for forward and one for reverse reads). 
+
+## Usage
+
+There are some parameters that can be changed. For instance, this pipeline automatically creates one new folder (or uses an existing one) called 'output/' in the current directory. You can change this behaviour by modifying the file config.yaml that is located in the 'config/' folder. Just go to the 'config:' section inside the config.yaml and change the "output\_dir='output'" to "output\_dir='your\_output\_dir'" where 'your\_output\_dir' can be any folder name or folder path you want.
+
+Once you have done that, you can just run the pipeline by typing in your command line:
+
+```bash start_pipeline.sh```
+
+This will assume that your samples are in a folder called 'samples/'. If that is not the case, then you can specify the folder where your samples lie like this:
+
+```bash start_pipeline.sh -i <path_to_fastq_files>```
+
+Note that the pipeline only accepts relative paths, meaning the path that it should take from the current_directory (current folder where you are working) to the folder with your sample files.
+
+
+The pipeline also accepts other input that can be passed to snakemake. You can display the different options by typing:
+
+```bash start_pipeline.sh -h```
+or 
+```bash start_pipeline.sh -help```
