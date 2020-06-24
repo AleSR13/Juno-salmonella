@@ -10,7 +10,7 @@ library(purrr)
 
 ## Load samples
 arguments <- commandArgs(trailingOnly = TRUE)
-#arguments <- paste("/data/BioGrid/hernandez/salmonellaserotyper/output/1091701622_S34_L001_serotype/", c("SeqSero_result.tsv", "1091701622_S34_L001.fastq_MLST_result.csv"), sep = "")
+#arguments <- paste("/data/BioGrid/hernanda/salmonella_pipeline/output/1091701622_S34_L001_serotype/", c("SeqSero_result.tsv", "1091701622_S34_L001.fastq_MLST_result.csv"), sep = "")
 
 ###########################################################################################
 ######################################## Functions ########################################
