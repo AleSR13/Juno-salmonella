@@ -37,7 +37,7 @@ rule SeqSero2_Serotype:
     log:
         config["output_dir"]+'/log/{sample}_seqsero.log'
     params:
-        output_dir = config["output_dir"]+'{sample}_serotype/'
+        output_dir = config["output_dir"]+'/{sample}_serotype/'
     threads: 
         config["threads"]["SeqSero2_Serotype"]
     conda:
