@@ -24,5 +24,7 @@ Note that the pipeline only accepts relative paths, meaning the path that it sho
 The pipeline also accepts other input that can be passed to snakemake. You can display the different options by typing:
 
 ```bash start_pipeline.sh -h```
-or 
-```bash start_pipeline.sh -help```
+
+or   
+
+```bash start_pipeline.sh --help```
