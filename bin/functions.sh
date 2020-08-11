@@ -34,9 +34,8 @@ spinner() {
 installer_intro() {
     tput reset
     line
-    echo -e "Welcome to the interactive installation process of bac_gastro"
+    echo -e "Welcome to the interactive installation process of salmonella_serotyper"
     echo -e "You are seeing this because one or multiple dependencies of the pipeline are missing on your system."
-    echo -e "You are using $VERSION"
     spacer
     echo -e "Please keep in mind that this pipeline is still a work-in-progress"
     echo -e "It is expected that several portions are unstable until release 1.0.0"

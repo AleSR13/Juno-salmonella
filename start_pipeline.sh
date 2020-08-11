@@ -1,18 +1,20 @@
 #!/bin/bash
 
 #load in functions
-source scripts/functions.sh
+set -o allexport
+source bin/functions.sh
 eval "$(parse_yaml config/parameters.yaml "params_")"
-eval "$(parse_yaml config/
-config.yaml "configuration_")"
+eval "$(parse_yaml config/config.yaml "configuration_")"
+set +o allexport
 
-UNIQUE_ID=$(scripts/generate_id.sh)
-SET_HOSTNAME=$(scripts/gethostname.sh)
+UNIQUE_ID=$(bin/generate_id.sh)
+SET_HOSTNAME=$(bin/gethostname.sh)
 
 
 ### conda environment
 PATH_MASTER_YAML="envs/master_env.yaml"
 MASTER_NAME=$(head -n 1 ${PATH_MASTER_YAML} | cut -f2 -d ' ') # Extract Conda environment name as specified in yaml file
+
 
 ### Default values for CLI parameters
 INPUT_DIR="samples/"
@@ -67,28 +69,11 @@ done
 set -- "${POSITIONAL[@]:-}" # Restores the positional arguments (i.e. without the case arguments above) which then can be called via `$@` or `$[0-9]` etc. These parameters are send to Snakemake.
 
 
-### Remove all output
-if [ "${CLEAN:-}" == "TRUE" ]; then
-    line
-    spacer
-    echo -e "The following files and folders will be deleted:\noutput/\noutput/log/\nvariables.yaml\nsample_sheet.yaml\n\n"
-    if [ "${SKIP_CONFIRMATION}" == "TRUE" ]; then
-        echo -e "Removing output: config/variables.yaml config/sample_sheet.yaml"
-            rm -rf output/
-            rm -f config/sample_sheet.yaml
-            rm -f config/variables.yaml
-
-            #sed -i '\|drmaa|d' profile/config.yaml
-    fi
-    exit 0
-fi
-
-
-### Print bac_gastro help message
+### Print help message
 if [ "${HELP:-}" == "TRUE" ]; then
     line
     cat <<HELP_USAGE
-Bac_gastro pipeline, version $VERSION, built with Snakemake
+Salmonella serotyper pipeline, built with Snakemake
   Usage: bash $0 -i <INPUT_DIR> <parameters>
   N.B. it is designed for Illumina paired-end data only
 
@@ -117,6 +102,118 @@ HELP_USAGE
 fi
 
 
+
+
+
+### Remove all output
+###> Remove all Jovian output
+if [ "${CLEAN:-}" == "TRUE" ]; then
+    bash bin/Clean
+    exit 0
+fi
+
+
+
+#### MAKE SURE CONDA WORKS ON ALL SYSTEMS
+rcfile="${HOME}/.salm_serotyper_src"
+conda_loc=$(which conda)
+
+
+if [ ! -f "${rcfile}" ]; then
+    if [ ! -z "${conda_loc}" ]; then
+
+    #> I ripped this block from jovian
+    #> Check https://github.com/DennisSchmitz/Jovian for the source code
+    #> The specific file is bin/includes/Install_miniconda
+    #> relevant lines are FROM line #51
+    #>
+
+    condadir="${conda_loc}"
+    basedir=$(echo "${condadir}" | rev | cut -d'/' -f3- | rev)
+    etcdir="${basedir}/etc/profile.d/conda.sh"
+    bindir="${basedir}/bin"
+
+    touch "${rcfile}"
+    cat << EOF >> "${rcfile}"
+if [ -f "${etcdir}" ]; then
+    . "${etcdir}"
+else
+    export PATH="${bindir}:$PATH"
+fi
+
+export -f conda
+export -f __conda_activate
+export -f __conda_reactivate
+export -f __conda_hashr
+export -f __add_sys_prefix_to_path
+EOF
+
+    cat << EOF >> "${HOME}/.bashrc"
+if [ -f "${rcfile}" ]; then
+    . "${rcfile}"
+fi
+EOF
+
+    fi 
+
+fi
+
+
+
+source "${HOME}"/.bashrc
+
+
+
+
+#### MAKE SURE CONDA WORKS ON ALL SYSTEMS
+rcfile="${HOME}/.salm_serotyper_src"
+conda_loc=$(which conda)
+
+
+if [ ! -f "${rcfile}" ]; then
+    if [ ! -z "${conda_loc}" ]; then
+
+    #> I ripped this block from jovian
+    #> Check https://github.com/DennisSchmitz/Jovian for the source code
+    #> The specific file is bin/includes/Install_miniconda
+    #> relevant lines are FROM line #51
+    #>
+
+    condadir="${conda_loc}"
+    basedir=$(echo "${condadir}" | rev | cut -d'/' -f3- | rev)
+    etcdir="${basedir}/etc/profile.d/conda.sh"
+    bindir="${basedir}/bin"
+
+    touch "${rcfile}"
+    cat << EOF >> "${rcfile}"
+if [ -f "${etcdir}" ]; then
+    . "${etcdir}"
+else
+    export PATH="${bindir}:$PATH"
+fi
+
+export -f conda
+export -f __conda_activate
+export -f __conda_reactivate
+export -f __conda_hashr
+export -f __add_sys_prefix_to_path
+EOF
+
+    cat << EOF >> "${HOME}/.bashrc"
+if [ -f "${rcfile}" ]; then
+    . "${rcfile}"
+fi
+EOF
+
+    fi 
+
+fi
+
+
+
+source "${HOME}"/.bashrc
+
+
 ###############################################################################################################
 ##### Installation block                                                                                  #####
 ###############################################################################################################
@@ -133,13 +230,13 @@ if [[ $PATH != *${MASTER_NAME}* ]]; then # If the master environment is not in y
     line
     spacer
     set +ue # Turn bash strict mode off because that breaks conda
-    source activate "${MASTER_NAME}" # Try to activate this env
+    conda activate "${MASTER_NAME}" # Try to activate this env
     if [ ! $? -eq 0 ]; then # If exit statement is not 0, i.e. master conda env hasn't been installed yet, do...
-        installer_intro
+        #installer_intro
         if [ "${SKIP_CONFIRMATION}" = "TRUE" ]; then
             echo -e "\tInstalling master environment..." 
             conda env create -f ${PATH_MASTER_YAML} 
-            source activate "${MASTER_NAME}"
+            conda activate "${MASTER_NAME}"
             echo -e "DONE"
         else
             while read -r -p "The master environment hasn't been installed yet, do you want to install this environment now? [y/N] " envanswer
@@ -148,11 +245,11 @@ if [[ $PATH != *${MASTER_NAME}* ]]; then # If the master environment is not in y
                 if [[ "${envanswer}" =~ ^(yes|y)$ ]]; then
                     echo -e "\tInstalling master environment..." 
                     conda env create -f ${PATH_MASTER_YAML}
-                    source activate "${MASTER_NAME}"
+                    conda activate "${MASTER_NAME}"
                     echo -e "DONE"
                     break
                 elif [[ "${envanswer}" =~ ^(no|n)$ ]]; then
-                    echo -e "The master environment is a requirement. Exiting because bac_gastro cannot continue without this environment"
+                    echo -e "The master environment is a requirement. Exiting because cannot continue without this environment"
                     exit 1
                 else
                     echo -e "Please answer with 'yes' or 'no'"
@@ -186,19 +283,23 @@ if [ ! -d "${INPUT_DIR}" ]; then
     minispacer
     echo -e "The input directory specified (${INPUT_DIR}) does not exist"
     echo -e "Please specify an existing input directory"
+    minispacer
     exit 1
 fi
 
+
 ### Generate sample sheet
-if [ -n "$(ls -A "${INPUT_DIR}")" ]; then
+if [  `ls -A "${INPUT_DIR}" | grep 'R[0-9]\{1\}.*\.f[ast]\{0,3\}q\.\?[gz]\{0,2\}$' | wc -l` -gt 0 ]; then
     minispacer
     echo -e "Files in input directory (${INPUT_DIR}) are present"
     echo -e "Generating sample sheet..."
-    scripts/generate_sample_sheet.py "${INPUT_DIR}" > config/sample_sheet.yaml
-    SHEET_SUCCESS="TRUE"
+    python bin/generate_sample_sheet.py "${INPUT_DIR}" > sample_sheet.yaml
+    if [ $(wc -l sample_sheet.yaml | awk '{ print $1 }') -gt 2 ]; then
+        SHEET_SUCCESS="TRUE"
+    fi
 else
     minispacer
-    echo -e "The input directory you specified (${INPUT_DIR}) exists but is empty...\nPlease specify a directory with input-data."
+    echo -e "The input directory you specified (${INPUT_DIR}) exists but is empty or does not contain the expected input files...\nPlease specify a directory with input-data."
     exit 0
 fi
 
@@ -218,19 +319,20 @@ fi
 
 
 if [ "${MAKE_SAMPLE_SHEET}" == "TRUE" ]; then
-    echo -e "salmonella_serotyper_run:\n    identifier: ${UNIQUE_ID}" > config/variables.yaml
-    echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> config/variables.yaml
+    echo -e "bac_gastro_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
+    echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> variables.yaml
     echo -e "The sample sheet and variables file has now been created, you can now run the snakefile manually"
     exit 0
 fi
 
+
 ### Actual snakemake command with checkers for required files. N.B. here the UNIQUE_ID and SET_HOSTNAME variables are set!
-if [ -e config/sample_sheet.yaml ]; then
+if [ -e sample_sheet.yaml ]; then
     echo -e "Starting snakemake"
     set +ue #turn off bash strict mode because snakemake and conda can't work with it properly
-    echo -e "pipeline_run:\n    identifier: ${UNIQUE_ID}" > config/variables.yaml
-    echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> config/variables.yaml
-    eval $(parse_yaml config/variables.yaml "config_")
+    echo -e "pipeline_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
+    echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> variables.yaml
+    eval $(parse_yaml variables.yaml "config_")
     snakemake -s Snakefile --profile config ${@}
     #echo -e "\nUnique identifier for this run is: $config_run_identifier "
     echo -e "salmonella serotyper run complete"

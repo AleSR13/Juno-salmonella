@@ -8,8 +8,8 @@
 #############################################################################################
 ##### Input from Snakemake 
 arguments <- commandArgs(trailingOnly = TRUE)
-#arguments <- c("/data/BioGrid/hernanda/salmonella_pipeline/output/", list.files("/data/BioGrid/hernanda/salmonella_pipeline/output/", "SeqSero_result.tsv", recursive = TRUE, full.names = TRUE))
-output_dir <- arguments[1]
+#arguments <- c("out/serotype/salmonella_serotype_multireport.csv", list.files("out/serotype/", "SeqSero_result.tsv", recursive = TRUE, full.names = TRUE))
+output_file <- arguments[1]
 list_seqsero2_report <- arguments[-1]
 
 #############################################################################################
@@ -30,8 +30,8 @@ extract_from_seqsero <- function(path_to_file){
 
 # Extract sample names
 sample_names <- list_seqsero2_report %>% 
-  str_extract("[:alnum:]+[_[:alnum:]]*_serotype") %>%
-  str_remove("_serotype")
+  str_extract("serotype/+[:alnum:]+[_[:alnum:]]*") %>%
+  str_remove("serotype/")
 
 # Create multi_report
 all_reports <- map(list_seqsero2_report, extract_from_seqsero)
@@ -41,4 +41,4 @@ multi_report <- bind_rows(all_reports, .id = "Sample")%>%
   mutate("Predicted serotype" = ifelse(`Predicted serotype`== "I 4,[5],12:i:-",
                                          "Typhimurium monophasic variant", `Predicted serotype`))
 
-write_csv(multi_report, paste0(output_dir, "/salmonella_multi_report.csv"))
+write_csv(multi_report, output_file)

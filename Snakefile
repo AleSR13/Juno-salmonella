@@ -12,13 +12,21 @@
 import yaml
 
 #Configuration options for snakemake
-configfile: "config/config.yaml"
+configfile: 'config/config.yaml'
 configfile: 'config/parameters.yaml'
 
 # Load sample list (YAML file with form: sample > read number > file)
 SAMPLES = {}
 with open(config["sample_sheet"]) as sample_sheet_file:
-    SAMPLES = yaml.load(sample_sheet_file) 
+    SAMPLES = yaml.safe_load(sample_sheet_file) 
+
+
+
+
+# Local rules
+localrules:
+    all,
+    salmonella_multi_report
 
 #Final output is a csv file summarizing results for SeqSero2 and MOST
 rule all:
@@ -34,6 +42,8 @@ rule SeqSero2_Serotype:
         r2 = lambda wildcards: SAMPLES[wildcards.sample]['R2']
     output:
         config["output_dir"]+'/{sample}_serotype/SeqSero_result.tsv'
+    benchmark:
+        config["output_dir"]+'/log/benchmark/{sample}_seqsero.log'
     log:
         config["output_dir"]+'/log/{sample}_seqsero.log'
     params:
@@ -56,6 +66,8 @@ rule salmonella_multi_report:
         expand(config["output_dir"]+'/{sample}_serotype/SeqSero_result.tsv', sample=SAMPLES)
     output:
         config["output_dir"]+'/salmonella_multi_report.csv'
+    benchmark:
+        config["output_dir"]+'/log/benchmark/Rserotype_all_samples.log'
     log:
         config["output_dir"]+'/log/Rserotype_all_samples.log'
     params:
@@ -63,7 +75,7 @@ rule salmonella_multi_report:
     conda:
         'envs/final_serotype_R.yaml'
     shell:
-        'Rscript scripts/seqsero2_multireport.R {params.output_dir} {input} 2> {log}'
+        'Rscript bin/seqsero2_multireport.R {params.output_dir} {input} 2> {log}'
 
 
 

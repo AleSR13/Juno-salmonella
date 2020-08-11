@@ -4,7 +4,7 @@ latency-wait: "200"
 printshellcmds: true
 keep-going: true
 config:
-  - "sample_sheet='config/sample_sheet.yaml'"
-  - "output_dir='output'"
+  - "sample_sheet='sample_sheet.yaml'"
+  - "output_dir='out'"
 drmaa: " -q bio -n {threads}"
-drmaa-log-dir: output/log/drmaa
+drmaa-log-dir: out/log/drmaa

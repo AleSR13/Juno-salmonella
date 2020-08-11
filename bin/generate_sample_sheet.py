@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Generate sample sheet for salmonella_serotyper pipeline.
+"""Generate sample sheet for bac_gastro pipeline.
 
 Usage:
   generate_sample_sheet.py <source_dir>
@@ -23,7 +22,7 @@ import re
 import yaml
 
 
-fq_pattern = re.compile("(.*)_R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
+fq_pattern = re.compile("(.*)(_|\.)pR?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
 
 def main(args):
     assert args.dir.is_dir(), "Argument must be a directory."
@@ -33,9 +32,10 @@ def main(args):
         if file_.is_dir():
             continue
         match = fq_pattern.fullmatch(file_.name)
-        sample = samples.setdefault(match.group(1), {})
-        sample["R{}".format(match.group(2))] = str(file_)
-        
+        if match:
+            sample = samples.setdefault(match.group(1), {})
+            sample["R{}".format(match.group(3))] = str(file_)
+
     print(yaml.dump(samples, default_flow_style=False))
 
 
