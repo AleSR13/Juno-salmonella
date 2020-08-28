@@ -20,60 +20,87 @@ SAMPLES = {}
 with open(config["sample_sheet"]) as sample_sheet_file:
     SAMPLES = yaml.safe_load(sample_sheet_file) 
 
+# Easy access output directory
+OUT = config["output_dir"]
+
+#@################################################################################
+#@#### 				Processes                                    #####
+#@################################################################################
+
+    #############################################################################
+    #####  			Salmonella Serotyping                       #####
+    #############################################################################
+
+include: "bin/rules/seqsero2_senterica_serotype.smk"
+include: "bin/rules/salmonella_serotype_multireport.smk"
 
 
+#@################################################################################
+#@#### The `onstart` checker codeblock                                       #####
+#@################################################################################
+
+onstart:
+    try:
+        print("Checking if all specified files are accessible...")
+        important_files = [ config["sample_sheet"] ]
+        for filename in important_files:
+            if not os.path.exists(filename):
+                raise FileNotFoundError(filename)
+    except FileNotFoundError as e:
+        print("This file is not available or accessible: %s" % e)
+        sys.exit(1)
+    else:
+        print("\tAll specified files are present!")
+    shell("""
+        mkdir -p {OUT}
+        mkdir -p {OUT}/results
+        echo -e "\nLogging pipeline settings..."
+        echo -e "\tGenerating methodological hash (fingerprint)..."
+        echo -e "This is the link to the code used for this analysis:\thttps://gitl01-int-p.rivm.nl/hernanda/test1_salmonellaserotyper/tree/$(git log -n 1 --pretty=format:"%H")" > '{OUT}/results/log_git.txt'
+        echo -e "This code with unique fingerprint $(git log -n1 --pretty=format:"%H") was committed by $(git log -n1 --pretty=format:"%an <%ae>") at $(git log -n1 --pretty=format:"%ad")" >> '{OUT}/results/log_git.txt'
+        echo -e "\tGenerating full software list of current Conda environment (\"salmonella_master\")..."
+        conda list > '{OUT}/results/log_conda.txt'
+        echo -e "\tGenerating config file log..."
+        rm -f '{OUT}/results/log_config.txt'
+        for file in config/*.yaml
+        do
+            echo -e "\n==> Contents of file \"${{file}}\": <==" >> '{OUT}/results/log_config.txt'
+            cat ${{file}} >> '{OUT}/results/log_config.txt'
+            echo -e "\n\n" >> '{OUT}/results/log_config.txt'
+        done
+    """)
+
+#@################################################################################
+#@#### These are the conditional cleanup rules                               #####
+#@################################################################################
+
+#onerror:
+ #   shell("""""")
+
+
+onsuccess:
+    shell("""
+        echo -e "\tGenerating HTML index of log files..."
+        echo -e "\tGenerating Snakemake report..."
+        snakemake --unlock
+        snakemake --profile config --report '{OUT}/results/snakemake_report.html'
+        echo -e "Finished"
+    """)
+
+
+#################################################################################
+##### Specify final output:                                                 #####
+#################################################################################
 
 # Local rules
 localrules:
     all,
-    salmonella_multi_report
+    salmonella_serotype_multireport
 
-#Final output is a csv file summarizing results for SeqSero2 and MOST
+
 rule all:
     input:
-        expand(config["output_dir"]+'/{sample}_serotype/SeqSero_result.tsv', sample=SAMPLES),
-        config["output_dir"]+'/salmonella_multi_report.csv'     
-
-
-#This rule gets the serotype prediction using seqsero2
-rule SeqSero2_Serotype:
-    input:
-        r1 = lambda wildcards: SAMPLES[wildcards.sample]['R1'],
-        r2 = lambda wildcards: SAMPLES[wildcards.sample]['R2']
-    output:
-        config["output_dir"]+'/{sample}_serotype/SeqSero_result.tsv'
-    benchmark:
-        config["output_dir"]+'/log/benchmark/{sample}_seqsero.log'
-    log:
-        config["output_dir"]+'/log/{sample}_seqsero.log'
-    params:
-        output_dir = config["output_dir"]+'/{sample}_serotype/'
-    threads: 
-        config["threads"]["SeqSero2_Serotype"]
-    conda:
-        'envs/seqsero.yaml'
-    shell:
-        """
-#Run seqsero2 
-# -m 'a' means microassembly mode and -t '2' refers to separated fastq files (no interleaved)
-SeqSero2_package.py -m 'a' -t '2' -i {input} -d {params.output_dir} -p {threads}
-        """
-
-
-#Rscript to summarize results for all samples
-rule salmonella_multi_report:
-    input:
-        expand(config["output_dir"]+'/{sample}_serotype/SeqSero_result.tsv', sample=SAMPLES)
-    output:
-        config["output_dir"]+'/salmonella_multi_report.csv'
-    benchmark:
-        config["output_dir"]+'/log/benchmark/Rserotype_all_samples.log'
-    log:
-        config["output_dir"]+'/log/Rserotype_all_samples.log'
-    conda:
-        'envs/final_serotype_R.yaml'
-    shell:
-        'Rscript bin/seqsero2_multireport.R {output} {input} 2> {log}'
-
+        expand(OUT+'/{sample}_serotype/SeqSero_result.tsv', sample=SAMPLES),
+        OUT+'/salmonella_multi_report.csv' 
 
 
