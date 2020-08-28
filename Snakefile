@@ -70,12 +70,10 @@ rule salmonella_multi_report:
         config["output_dir"]+'/log/benchmark/Rserotype_all_samples.log'
     log:
         config["output_dir"]+'/log/Rserotype_all_samples.log'
-    params:
-        output_dir = config["output_dir"]
     conda:
         'envs/final_serotype_R.yaml'
     shell:
-        'Rscript bin/seqsero2_multireport.R {params.output_dir} {input} 2> {log}'
+        'Rscript bin/seqsero2_multireport.R {output} {input} 2> {log}'
 
 
 

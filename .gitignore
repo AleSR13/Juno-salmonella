@@ -9,6 +9,7 @@ samples/
 .ipynb_checkpoints/
 .snakemake/
 bin_trim/
+raw_data/
 
 # Files to ignore
 Snakefile_includes_MOST
