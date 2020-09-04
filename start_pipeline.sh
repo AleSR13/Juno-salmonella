@@ -24,6 +24,7 @@ CLEAN="FALSE"
 HELP="FALSE"
 MAKE_SAMPLE_SHEET="FALSE"
 SHEET_SUCCESS="FALSE"
+DRY_RUN="FALSE"
 
 ### Parse the commandline arguments, if they are not part of the pipeline, they get send to Snakemake
 POSITIONAL=()
@@ -56,6 +57,10 @@ do
         SKIP_CONFIRMATION="TRUE"
         shift # Next
         ;;
+        -n|--dry_run)
+        DRY_RUN="TRUE"
+        shift # Next
+        ;;
         -u|--unlock)
         SNAKEMAKE_UNLOCK="TRUE"
         shift # Next
@@ -73,7 +78,7 @@ set -- "${POSITIONAL[@]:-}" # Restores the positional arguments (i.e. without th
 if [ "${HELP:-}" == "TRUE" ]; then
     line
     cat <<HELP_USAGE
-Salmonella serotyper pipeline, built with Snakemake
+Salmonella pipeline, built with Snakemake
   Usage: bash $0 -i <INPUT_DIR> <parameters>
   N.B. it is designed for Illumina paired-end data only
 
@@ -114,7 +119,7 @@ fi
 
 
 #### MAKE SURE CONDA WORKS ON ALL SYSTEMS
-rcfile="${HOME}/.salm_serotyper_src"
+rcfile="${HOME}/.salmonella_pipeline_src"
 conda_loc=$(which conda)
 
 
@@ -237,6 +242,7 @@ if [ ! -d "${INPUT_DIR}" ]; then
     exit 1
 fi
 
+########################## Initialize pipeline ############################################
 
 ### Generate sample sheet
 if [  `ls -A "${INPUT_DIR}" | grep 'R[0-9]\{1\}.*\.f[ast]\{0,3\}q\.\?[gz]\{0,2\}$' | wc -l` -gt 0 ]; then
@@ -269,10 +275,16 @@ fi
 
 
 if [ "${MAKE_SAMPLE_SHEET}" == "TRUE" ]; then
-    echo -e "bac_gastro_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
+    echo -e "salmonella_pipeline_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
     echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> variables.yaml
     echo -e "The sample sheet and variables file has now been created, you can now run the snakefile manually"
     exit 0
+fi
+
+### Dry run
+if [ "${DRY_RUN}" == "TRUE" ]; then
+    snakemake --profile config ${@} -n
+    exit 0 
 fi
 
 
@@ -283,9 +295,9 @@ if [ -e sample_sheet.yaml ]; then
     echo -e "pipeline_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
     echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> variables.yaml
     eval $(parse_yaml variables.yaml "config_")
-    snakemake -s Snakefile --profile config ${@}
+    snakemake --profile config ${@}
     #echo -e "\nUnique identifier for this run is: $config_run_identifier "
-    echo -e "salmonella serotyper run complete"
+    echo -e "Salmonella pipeline run complete"
     set -ue #turn bash strict mode back on
 else
     echo -e "Sample_sheet.yaml could not be found"
