@@ -1,10 +1,13 @@
+local-cores: 8
+cores: 300
+latency-wait: 60
 use-conda: true
+jobname: BACgastro_{name}.jobid{jobid}
 jobs: "99"
-latency-wait: "200"
 printshellcmds: true
-keep-going: true
+#keep-going: true
 config:
   - "sample_sheet='sample_sheet.yaml'"
   - "output_dir='out'"
-drmaa: " -q bio -n {threads}"
-drmaa-log-dir: out/log/drmaa
+#drmaa: " -q bio -n {threads}"
+#drmaa-log-dir: out/log/drmaa

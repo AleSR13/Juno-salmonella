@@ -30,7 +30,7 @@ extract_from_seqsero <- function(path_to_file){
 
 # Extract sample names
 sample_names <- list_seqsero2_report %>% 
-  str_extract("[:alnum:]+[_[:alnum:]]*_serotype") %>%
+  str_extract("[:alnum:]+[-_[:alnum:]]*_serotype") %>%
   str_remove("_serotype")
 
 # Create multi_report
