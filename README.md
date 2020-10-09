@@ -16,7 +16,7 @@ Once you have done that, you can just run the pipeline by typing in your command
 
 This will assume that your samples are in a folder called 'samples/'. If that is not the case, then you can specify the folder where your samples lie like this:
 
-```bash start_pipeline.sh -i <path_to_fastq_files>```
+```bash start_pipeline.sh -i <path_to_fastq_files> -o <path_to_desired_output_folder>```
 
 Note that the pipeline only accepts relative paths, meaning the path that it should take from the current_directory (current folder where you are working) to the folder with your sample files.
 
