@@ -1,4 +1,15 @@
 #!/bin/bash
+###############################################################################################################################################
+### Juno pipeline-Salmonella                                                                                                                ### 
+### Authors: Alejandra Hernandez-Segura, Maaike van der Beld                                                                                ### 
+### Organization: Rijksinstituut voor Volksgezondheid en Milieu (RIVM)                                                                      ### 
+### Department: Infektieziekteonderzoek, Diagnostiek en Laboratorium Surveillance (IDS), Bacteriologie (BPD)                                ### 
+### Date: 09-10-2020                                                                                                                        ### 
+###                                                                                                                                         ### 
+### Documentation: https://gitl01-int-p.rivm.nl/hernanda/test1_salmonellaserotyper                                                          ### 
+###                                                                                                                                         ### 
+###                                                                                                                                         ### 
+###############################################################################################################################################
 
 #load in functions
 set -o allexport
@@ -17,7 +28,8 @@ MASTER_NAME=$(head -n 1 ${PATH_MASTER_YAML} | cut -f2 -d ' ') # Extract Conda en
 
 
 ### Default values for CLI parameters
-INPUT_DIR="samples/"
+INPUT_DIR="samples"
+OUTPUT_DIR="out"
 SKIP_CONFIRMATION="FALSE"
 SNAKEMAKE_UNLOCK="FALSE"
 CLEAN="FALSE"
@@ -34,6 +46,11 @@ do
     case $key in
         -i|--input)
         INPUT_DIR="$2"
+        shift # Next
+        shift # Next
+        ;;
+        -o|--output)
+        OUTPUT_DIR="$2"
         shift # Next
         shift # Next
         ;;
@@ -78,13 +95,15 @@ set -- "${POSITIONAL[@]:-}" # Restores the positional arguments (i.e. without th
 if [ "${HELP:-}" == "TRUE" ]; then
     line
     cat <<HELP_USAGE
-Salmonella pipeline, built with Snakemake
+Juno pipeline-Salmonella, built with Snakemake
   Usage: bash $0 -i <INPUT_DIR> <parameters>
   N.B. it is designed for Illumina paired-end data only
 
 Input:
   -i, --input [DIR]                 This is the folder containing your input fastq files.
-                                    Default is 'samples/' and only relative paths are accepted.
+                                    Default is 'samples/' 
+  -o, --output [DIR]                This is the folder where the result files will be collected.
+                                    Default is 'out/' 
 Output (automatically generated):
   data/                             Contains detailed intermediate files.
   logs/                             Contains all log files.
@@ -119,7 +138,7 @@ fi
 
 
 #### MAKE SURE CONDA WORKS ON ALL SYSTEMS
-rcfile="${HOME}/.salmonella_pipeline_src"
+rcfile="${HOME}/.Juno_salmonella_src"
 conda_loc=$(which conda)
 
 
@@ -219,7 +238,7 @@ fi
 
 if [ "${SNAKEMAKE_UNLOCK}" == "TRUE" ]; then
     printf "\nUnlocking working directory...\n"
-    snakemake -s Snakefile --profile config ${@} --unlock
+    snakemake -s Snakefile --profile config --config output_dir='${OUTPUT_DIR}' ${@} --unlock
     printf "\nDone.\n"
     exit 0
 fi
@@ -264,7 +283,7 @@ if [ "${SHEET_SUCCESS}" == "TRUE" ]; then
     echo -e "Succesfully generated the sample sheet"
     echo -e "ready_for_start"
 else
-    echo -e "Couldn't find files in the input directory that ended up being in a .FASTQ, .FQ or .GZ format"
+    echo -e "Couldn't find files in the input directory that ended up being in a .FASTQ, .FQ or .GZ format. \nIt could also be that your file names do not contain the letters 'pR1' or 'pR2' to designate the filtered/trimmed forward and reverse reads."
     echo -e "Please inspect the input directory (${INPUT_DIR}) and make sure the files are in one of the formats listed below"
     echo -e ".fastq.gz (Zipped Fastq)"
     echo -e ".fq.gz (Zipped Fq)"
@@ -283,7 +302,7 @@ fi
 
 ### Dry run
 if [ "${DRY_RUN}" == "TRUE" ]; then
-    snakemake --profile config ${@} -n
+    snakemake --profile config --config output_dir=${OUTPUT_DIR} ${@} -n
     exit 0 
 fi
 
@@ -292,12 +311,12 @@ fi
 if [ -e sample_sheet.yaml ]; then
     echo -e "Starting snakemake"
     set +ue #turn off bash strict mode because snakemake and conda can't work with it properly
-    echo -e "pipeline_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
+    echo -e "Juno_salmonella_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
     echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> variables.yaml
     eval $(parse_yaml variables.yaml "config_")
-    snakemake --profile config ${@}
+    snakemake --profile config --config output_dir=${OUTPUT_DIR} --drmaa " -q bio -n {threads}" --drmaa-log-dir ${OUTPUT_DIR}/log/drmaa ${@}
     #echo -e "\nUnique identifier for this run is: $config_run_identifier "
-    echo -e "Salmonella pipeline run complete"
+    echo -e "Juno Salmonella pipeline run complete"
     set -ue #turn bash strict mode back on
 else
     echo -e "Sample_sheet.yaml could not be found"

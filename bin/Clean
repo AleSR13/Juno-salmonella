@@ -35,7 +35,7 @@ if [ "${should_i_clean}" == "no" ]; then
 fi
 
 if [ "${should_i_clean}" == "yes" ]; then
-    echo -e "Removing pipeline output: \nout/\nout/log/\nvariables.yaml\nsample_sheet.yaml\n\n"
+    echo -e "Removing Juno Salmonella serotyper output: \nout/\nout/log/\nvariables.yaml\nsample_sheet.yaml\n\n"
 
     #@ remove the folders through a forloop with spinner + finish signal
     a=(

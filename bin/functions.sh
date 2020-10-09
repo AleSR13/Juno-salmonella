@@ -34,7 +34,7 @@ spinner() {
 installer_intro() {
     tput reset
     line
-    echo -e "Welcome to the interactive installation process of salmonella_serotyper"
+    echo -e "Welcome to the interactive installation process of Juno pipeline"
     echo -e "You are seeing this because one or multiple dependencies of the pipeline are missing on your system."
     spacer
     echo -e "Please keep in mind that this pipeline is still a work-in-progress"

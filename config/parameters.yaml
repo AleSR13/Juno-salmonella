@@ -1,5 +1,5 @@
 ### Technical parameters           
-
+sample_sheet: 'sample_sheet.yaml'
 
 threads:
     SeqSero2_Serotype: 6
