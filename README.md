@@ -1,4 +1,4 @@
-# Salmonella Serotyper pipeline
+# Juno-Salmonella pipeline
 
 This small pipeline predicts the serotype of Salmonella samples from fastq files. It uses the tool SeqSero2 to do so (see: https://github.com/denglab/SeqSero2). It contains only two rules:
 1. Serotype prediction using SeqSero2 taking fastq files as input
