@@ -25,18 +25,13 @@ library(dplyr)
 ##  Function to filter important information from seqsero2 report
 extract_from_seqsero <- function(path_to_file){
   seqsero_report <- read_delim(path_to_file, delim = "\t", col_types = "ccccccccccc") %>%
-    `[`(,c(7,9,10,11))
+    `[`(,c(1,7,9,10,11))
 }
 
-# Extract sample names
-sample_names <- list_seqsero2_report %>% 
-  str_extract("[:alnum:]+[-_[:alnum:]]*_serotype") %>%
-  str_remove("_serotype")
 
 # Create multi_report
 all_reports <- map(list_seqsero2_report, extract_from_seqsero)
-names(all_reports) <- sample_names
-multi_report <- bind_rows(all_reports, .id = "Sample")%>%
+multi_report <- bind_rows(all_reports) %>%
   # Correct S. enterica typhimurium monophasic
   mutate("Predicted serotype" = ifelse(`Predicted serotype`== "I 4,[5],12:i:-",
                                          "Typhimurium monophasic variant", `Predicted serotype`))
