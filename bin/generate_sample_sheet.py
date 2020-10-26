@@ -22,7 +22,7 @@ import re
 import yaml
 
 
-fq_pattern = re.compile("(.*)(_|\.)pR?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
+fq_pattern = re.compile("(.*?)(?:_S\d+_|_S\d+.|_|\.)pR?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
 
 def main(args):
     assert args.dir.is_dir(), "Argument must be a directory."
