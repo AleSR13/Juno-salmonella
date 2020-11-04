@@ -34,7 +34,7 @@ def main(args):
         match = fq_pattern.fullmatch(file_.name)
         if match:
             sample = samples.setdefault(match.group(1), {})
-            sample["R{}".format(match.group(3))] = str(file_)
+            sample["R{}".format(match.group(2))] = str(file_)
 
     print(yaml.dump(samples, default_flow_style=False))
 

@@ -238,7 +238,7 @@ fi
 
 if [ "${SNAKEMAKE_UNLOCK}" == "TRUE" ]; then
     printf "\nUnlocking working directory...\n"
-    snakemake -s Snakefile --profile config --config output_dir='${OUTPUT_DIR}' ${@} --unlock
+    snakemake --profile config --config output_dir=${OUTPUT_DIR} ${@} --unlock
     printf "\nDone.\n"
     exit 0
 fi
