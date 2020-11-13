@@ -7,7 +7,7 @@ def extract_from_seqsero(input):
     print(input)
     assert os.path.exists(input), "One or more input files do not exist. Please make sure that you provided the right paths to your input files."
     seqsero_report = pd.read_csv(input, sep='\t')
-    seqsero_report = seqsero_report.iloc[:,[0,8,9,10]]
+    seqsero_report = seqsero_report.iloc[:,[0,3,4,5,6,7,8,9,10]]
     return seqsero_report
 
 # Create and save multi_report
@@ -15,7 +15,7 @@ def main(args):
     multi_report = list(map(extract_from_seqsero, args.input))
     multi_report = multi_report[0].append([multi_report[i] for i in range(1, len(multi_report))],
         ignore_index=True)
-    multi_report.loc[multi_report['Predicted serotype'] == "I 4,[5],12:i:-", 'Predicted serotype'] = "Typhimurium monophasic variant"
+    #multi_report.loc[multi_report['Predicted serotype'] == "I 4,[5],12:i:-", 'Predicted serotype'] = "Typhimurium monophasic variant"
     multi_report.to_csv(args.out_report)
     
 
