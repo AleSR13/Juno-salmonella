@@ -137,57 +137,6 @@ fi
 
 
 
-#### MAKE SURE CONDA WORKS ON ALL SYSTEMS
-rcfile="${HOME}/.Juno_salmonella_src"
-conda_loc=$(which conda)
-
-
-if [ ! -f "${rcfile}" ]; then
-    if [ ! -z "${conda_loc}" ]; then
-
-    #> I ripped this block from jovian
-    #> Check https://github.com/DennisSchmitz/Jovian for the source code
-    #> The specific file is bin/includes/Install_miniconda
-    #> relevant lines are FROM line #51
-    #>
-
-    condadir="${conda_loc}"
-    basedir=$(echo "${condadir}" | rev | cut -d'/' -f3- | rev)
-    etcdir="${basedir}/etc/profile.d/conda.sh"
-    bindir="${basedir}/bin"
-
-    touch "${rcfile}"
-    cat << EOF >> "${rcfile}"
-if [ -f "${etcdir}" ]; then
-    . "${etcdir}"
-else
-    export PATH="${bindir}:$PATH"
-fi
-
-export -f conda
-export -f __conda_activate
-export -f __conda_reactivate
-export -f __conda_hashr
-export -f __add_sys_prefix_to_path
-EOF
-
-    cat << EOF >> "${HOME}/.bashrc"
-if [ -f "${rcfile}" ]; then
-    . "${rcfile}"
-fi
-EOF
-
-    fi 
-
-fi
-
-
-
-source "${HOME}"/.bashrc
-
-
-
-
 ###############################################################################################################
 ##### Installation block                                                                                  #####
 ###############################################################################################################
@@ -209,16 +158,20 @@ if [[ $PATH != *${MASTER_NAME}* ]]; then # If the master environment is not in y
         #installer_intro
         if [ "${SKIP_CONFIRMATION}" = "TRUE" ]; then
             echo -e "\tInstalling master environment..." 
-            conda env create -f ${PATH_MASTER_YAML} 
+            conda env update -f envs/mamba.yaml -q -v
+            source activate mamba
+            mamba env update -f ${PATH_MASTER_YAML}
             conda activate "${MASTER_NAME}"
             echo -e "DONE"
         else
-            while read -r -p "The master environment hasn't been installed yet, do you want to install this environment now? [y/N] " envanswer
+            while read -r -p "The master environment hasn't been installed yet, do you want to install this environment now? [y/n] " envanswer
             do
                 envanswer=${envanswer,,}
                 if [[ "${envanswer}" =~ ^(yes|y)$ ]]; then
                     echo -e "\tInstalling master environment..." 
-                    conda env create -f ${PATH_MASTER_YAML}
+                    conda env update -f envs/mamba.yaml -q -v
+                    source activate mamba
+                    mamba env update -f ${PATH_MASTER_YAML}
                     conda activate "${MASTER_NAME}"
                     echo -e "DONE"
                     break
@@ -281,14 +234,14 @@ fi
 ### Checker for succesfull creation of sample_sheet
 if [ "${SHEET_SUCCESS}" == "TRUE" ]; then
     echo -e "Succesfully generated the sample sheet"
-    echo -e "ready_for_start"
+    echo -e "\n\nReady to start..."
 else
     echo -e "Couldn't find files in the input directory that ended up being in a .FASTQ, .FQ or .GZ format. \nIt could also be that your file names do not contain the letters 'pR1' or 'pR2' to designate the filtered/trimmed forward and reverse reads."
     echo -e "Please inspect the input directory (${INPUT_DIR}) and make sure the files are in one of the formats listed below"
-    echo -e ".fastq.gz (Zipped Fastq)"
-    echo -e ".fq.gz (Zipped Fq)"
-    echo -e ".fastq (Unzipped Fastq)"
-    echo -e ".fq (unzipped Fq)"
+    echo -e "    .fastq.gz (Zipped Fastq)"
+    echo -e "    .fq.gz (Zipped Fq)"
+    echo -e "    .fastq (Unzipped Fastq)"
+    echo -e "    .fq (unzipped Fq)"
     exit 1
 fi
 

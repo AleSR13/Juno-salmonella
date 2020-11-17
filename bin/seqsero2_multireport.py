@@ -12,11 +12,11 @@ def extract_from_seqsero(input):
 
 # Create and save multi_report
 def main(args):
-    multi_report = list(map(extract_from_seqsero, args.input))
-    multi_report = multi_report[0].append([multi_report[i] for i in range(1, len(multi_report))],
-        ignore_index=True)
+    multi_report = list( map(extract_from_seqsero, args.input) )
+    multi_report = multi_report[0].append([multi_report[i] for i in range(1, len(multi_report))], ignore_index=True)
+    multi_report["Sample name"] = [ file_n.split("_")[0] for file_n in multi_report["Sample name"].tolist() ] # In file names, remove everything after the first underscore
     #multi_report.loc[multi_report['Predicted serotype'] == "I 4,[5],12:i:-", 'Predicted serotype'] = "Typhimurium monophasic variant"
-    multi_report.to_csv(args.out_report)
+    multi_report.to_csv(args.out_report, index = False)
     
 
 if __name__ == "__main__":
