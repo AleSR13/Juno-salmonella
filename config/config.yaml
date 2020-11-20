@@ -2,6 +2,7 @@ local-cores: 8
 cores: 300
 latency-wait: 60
 use-conda: true
-jobname: JunoSalmonella_{name}.jobid{jobid}
+jobname: JunoSalm_{name}.jobid{jobid}
+keep-going: true
 printshellcmds: true
-
+conda-frontend: mamba

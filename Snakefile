@@ -82,7 +82,7 @@ onsuccess:
         echo -e "\tGenerating HTML index of log files..."
         echo -e "\tGenerating Snakemake report..."
         snakemake --profile config --config output_dir={OUT} --unlock
-        snakemake --profile config --config output_dir={OUT} --report '{OUT}/results/junoSalmonella_snakemake_report.html'
+        snakemake --profile config --config output_dir={OUT} --report {OUT}/results/snakemake_report.html 
         echo -e "Finished"
     """)
 

@@ -3,4 +3,6 @@ sample_sheet: 'sample_sheet.yaml'
 
 threads:
     SeqSero2_Serotype: 6
+mem_mb:
+    SeqSero2_Serotype: 5000
 

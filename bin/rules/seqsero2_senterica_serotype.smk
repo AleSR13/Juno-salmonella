@@ -4,7 +4,10 @@ rule seqsero2_senterica_serotype:
         r1 = lambda wildcards: SAMPLES[wildcards.sample]['R1'],
         r2 = lambda wildcards: SAMPLES[wildcards.sample]['R2']
     output:
-        OUT+'/{sample}_serotype/SeqSero_result.tsv'
+        OUT+'/{sample}_serotype/SeqSero_result.tsv',
+        temp(OUT+'/{sample}_serotype/SeqSero_result.txt'),
+        temp(OUT+'/{sample}_serotype/blasted_output.xml'),
+        temp(OUT+'/{sample}_serotype/data_log.txt')
     benchmark:
         OUT+'/log/benchmark/{sample}_seqsero.log'
     log:
@@ -13,6 +16,8 @@ rule seqsero2_senterica_serotype:
         output_dir = OUT+'/{sample}_serotype/'
     threads: 
         config["threads"]["SeqSero2_Serotype"]
+    resources: 
+        mem_mb=config["mem_mb"]["SeqSero2_Serotype"]
     conda:
         '../../envs/seqsero.yaml'
     shell:
