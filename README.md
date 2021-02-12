@@ -12,19 +12,15 @@ There are some parameters that can be changed. For instance, this pipeline autom
 
 Once you have done that, you can just run the pipeline by typing in your command line:
 
-```bash start_pipeline.sh```
-
-This will assume that your samples are in a folder called 'samples/'. If that is not the case, then you can specify the folder where your samples lie like this:
-
 ```bash start_pipeline.sh -i <path_to_fastq_files> -o <path_to_desired_output_folder>```
 
-Note that the pipeline only accepts relative paths, meaning the path that it should take from the current_directory (current folder where you are working) to the folder with your sample files.
+where the <path_to_fastq_files> is the input directory (`-i`) given either as an absolute path or as a path relative to your current directory. The same counts for your desired output directory (`-o`).
 
 
 The pipeline also accepts other input that can be passed to snakemake. You can display the different options by typing:
 
-```bash start_pipeline.sh -h```
+```bash juno-salmonella -h```
 
 or   
 
-```bash start_pipeline.sh --help```
+```bash juno-salmonella --help```
