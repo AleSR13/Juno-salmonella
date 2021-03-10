@@ -30,6 +30,9 @@ MASTER_NAME=$(head -n 1 ${PATH_MASTER_YAML} | cut -f2 -d ' ') # Extract Conda en
 ### Default values for CLI parameters
 INPUT_DIR="samples"
 OUTPUT_DIR="out"
+CORES="NotProvided"
+QUEUE="bio"
+LOCAL="FALSE"
 SKIP_CONFIRMATION="FALSE"
 SNAKEMAKE_UNLOCK="FALSE"
 CLEAN="FALSE"
@@ -45,14 +48,24 @@ do
     key="$1"
     case $key in
         -i|--input)
-        INPUT_DIR="$2"
+        INPUT_DIR="${2%/}"
         shift # Next
         shift # Next
         ;;
         -o|--output)
-        OUTPUT_DIR="$2"
+        OUTPUT_DIR="${2%/}"
         shift # Next
         shift # Next
+        ;;
+        -q|--queue)
+        QUEUE="$2"
+        shift
+        shift
+        ;;
+        --cores)
+        CORES="$2"
+        shift
+        shift
         ;;
         -h|--help)
         HELP="TRUE"
@@ -69,6 +82,9 @@ do
         --make-sample-sheet)
         MAKE_SAMPLE_SHEET="TRUE"
         shift # Next
+        ;;
+        -l|--local)
+        LOCAL="TRUE"
         ;;
         -y)
         SKIP_CONFIRMATION="TRUE"
@@ -104,6 +120,18 @@ Input:
                                     Default is 'samples/' 
   -o, --output [DIR]                This is the folder where the result files will be collected.
                                     Default is 'out/' 
+
+  --queue, -q [STR]                 If using a cluster, this is the name of the queue
+                                    to which the jobs should be sent. Default
+                                    is 'bio'.  
+  --cores [INT]                     Number of cores to use to run the pipeline. If
+                                    running in a cluster, the default is 300. If 
+                                    running locally, the default is 4.
+                                  
+  --local, -l                       If this flag is present, the pipeline is run 
+                                    locally instead of in a cluster. The default 
+                                    is to run in a cluster ('bio' queue)
+
 Output (automatically generated):
   data/                             Contains detailed intermediate files.
   logs/                             Contains all log files.
@@ -265,7 +293,7 @@ if [ -e sample_sheet.yaml ]; then
     echo -e "Juno_salmonella_run:\n    identifier: ${UNIQUE_ID}" > variables.yaml
     echo -e "Server_host:\n    hostname: http://${SET_HOSTNAME}" >> variables.yaml
     eval $(parse_yaml variables.yaml "config_")
-    snakemake --profile config --config output_dir=${OUTPUT_DIR} --drmaa " -q bio -n {threads}" --drmaa-log-dir ${OUTPUT_DIR}/log/drmaa ${@}
+    #snakemake --profile config --config output_dir=${OUTPUT_DIR} --drmaa " -q bio -n {threads}" --drmaa-log-dir ${OUTPUT_DIR}/log/drmaa ${@}
     #echo -e "\nUnique identifier for this run is: $config_run_identifier "
     echo -e "Juno Salmonella pipeline run complete"
     set -ue #turn bash strict mode back on
@@ -275,5 +303,24 @@ else
     echo -e "Please inspect the input directory (${INPUT_DIR}) and make sure the right files are present"
     exit 1
 fi
+
+if [[ $LOCAL == "TRUE" ]]; then
+    if [[ $CORES == "NotProvided" ]]; then
+        CORES="4"
+    fi
+    snakemake --profile config --config output_dir=${OUTPUT_DIR} --cores $CORES ${@}
+else
+    if [[ $CORES == "NotProvided" ]]; then
+        CORES="300"
+    fi
+    snakemake --profile config --config output_dir=${OUTPUT_DIR} \
+    --cores $CORES \
+    --drmaa " -q ${QUEUE} -n {threads} \
+    -o ${OUTPUT_DIR}/log/drmaa/{name}_{wildcards}_{jobid}.out \
+    -e ${OUTPUT_DIR}/log/drmaa/{name}_{wildcards}_{jobid}.err \
+    -R \"span[hosts=1] rusage[mem={resources.mem_mb}]\" "  \
+    --drmaa-log-dir ${OUTPUT_DIR}/log/drmaa ${@}
+fi
+
 
 exit 0 
