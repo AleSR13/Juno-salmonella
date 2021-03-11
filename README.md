@@ -24,3 +24,5 @@ The pipeline also accepts other input that can be passed to snakemake. You can d
 or   
 
 ```bash juno-salmonella --help```
+
+The default is to run in the cluster ('bio' queue). If you want to change the queue, use `--queue my_queue_name`. If you want to run it locally you have to add the `--local` flag. You may also provide a specific number of `--cores`. 
